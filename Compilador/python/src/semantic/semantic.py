@@ -9,7 +9,7 @@
 # tipo inferido em `no.tipo`, e identificadores/chamadas recebem `no.simbolo`.
 
 
-from arvore import (
+from src.ast.arvore import (
     Programa, Funcao, DeclVar, ListaDecl, Bloco, If, While, For,
     Return, Break, Continue, Print, Read, ExprStmt, Atribuicao, Binaria,
     Unaria, Chamada, Indice, Identificador, Literal,
