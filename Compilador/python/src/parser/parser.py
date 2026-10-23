@@ -3,13 +3,20 @@ import os
 import sys
 import subprocess
 
-from arvore import (
+if __package__ in (None, ""):
+    # Executado diretamente (python3 src/parser/parser.py arquivo.c): coloca a
+    # raiz do projeto no caminho de busca para que o pacote "src" seja achado.
+    sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
+
+from src.ast.arvore import (
     Programa, Funcao, Parametro, DeclVar, ListaDecl, Bloco, If, While, For,
     Return, Break, Continue, Print, Read, ExprStmt, Atribuicao, Binaria,
     Unaria, Chamada, Indice, Identificador, Literal,
 )
 
-DIRETORIO = os.path.dirname(os.path.abspath(__file__))
+# O scanner é executado como outro programa; seu caminho vem do próprio pacote.
+SCANNER = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                       "..", "lexer", "scanner.py")
 
 
 class ErroLexico(Exception):
@@ -24,7 +31,7 @@ class ErroSintatico(Exception):
 def obter_tokens(nome_arquivo):
     # Caminho absoluto: funciona mesmo se o programa for chamado de outra pasta.
     resultado = subprocess.run(
-        [sys.executable, os.path.join(DIRETORIO, "scanner.py"), nome_arquivo],
+        [sys.executable, SCANNER, nome_arquivo],
         capture_output=True,
         text=True
     )
@@ -51,7 +58,6 @@ TIPOS = ("INT", "FLOAT", "BOOL", "CHAR", "VOID")
 
 
 def pos(token):
-    """Posição de origem de um token, no formato aceito pelos nós."""
     return {"linha": token["line"], "coluna": token["column"]}
 
 
@@ -88,11 +94,7 @@ class Parser:
         return token
 
     def marcar(self, no, origem):
-        """Define o trecho do fonte coberto por uma expressão.
-
-        Início: posição de `origem` (um token ou outro nó).
-        Fim (exclusivo): logo após o último token consumido.
-        """
+       
         if isinstance(origem, dict):
             no.linha, no.coluna = origem["line"], origem["column"]
         else:
@@ -356,7 +358,6 @@ class Parser:
         return esquerda
 
     def _binaria(self, proximo, *operadores):
-        """Laço genérico para operadores binários associativos à esquerda."""
         esquerda = proximo()
         while self.checar(*operadores):
             tok = self.avancar()
