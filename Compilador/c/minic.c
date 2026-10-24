@@ -5,6 +5,7 @@
 #include "scanner.h"
 #include "parser.h"
 #include "semantic.h"
+#include "ir.h"
 
 #ifndef COMPILACAO_SEPARADA
 #include "util.c"
@@ -12,9 +13,11 @@
 #include "arvore.c"
 #include "parser.c"
 #include "semantic.c"
+#include "ir.c"
 #endif
 
 #include <stdio.h>
+#include <string.h>
 
 #ifdef _WIN32
 #include <io.h>
@@ -35,18 +38,37 @@ int main(int argc, char **argv)
 {
     No *ast;
     int i;
+    int mostrar_ir = 0;
+    const char *arquivo = NULL;
 
 #ifdef _WIN32
     _setmode(_fileno(stdout), _O_BINARY);
 #endif
 
-    if (argc != 2) {
-        fprintf(stderr, "Uso: %s <arquivo.c>\n", argv[0]);
+    for (i = 1; i < argc; i++) {
+        if (strcmp(argv[i], "--ir") == 0) {
+            mostrar_ir = 1;
+        } else if (strcmp(argv[i], "-O0") == 0 || strcmp(argv[i], "-O1") == 0) {
+            /* Otimizador ainda não portado para C: ignorado por ora,
+             * a IR emitida é sempre a não otimizada. */
+        } else if (argv[i][0] == '-') {
+            fprintf(stderr, "Uso: %s [--ir] [-O0|-O1] <arquivo.c>\n", argv[0]);
+            return 1;
+        } else if (arquivo == NULL) {
+            arquivo = argv[i];
+        } else {
+            fprintf(stderr, "Uso: %s [--ir] [-O0|-O1] <arquivo.c>\n", argv[0]);
+            return 1;
+        }
+    }
+
+    if (arquivo == NULL) {
+        fprintf(stderr, "Uso: %s [--ir] [-O0|-O1] <arquivo.c>\n", argv[0]);
         return 1;
     }
 
-    if (!ler_fonte(argv[1])) {
-        fprintf(stderr, "Arquivo não encontrado: %s\n", argv[1]);
+    if (!ler_fonte(arquivo)) {
+        fprintf(stderr, "Arquivo não encontrado: %s\n", arquivo);
         return 1;
     }
 
@@ -67,6 +89,16 @@ int main(int argc, char **argv)
     }
 
     analisar_semantica(ast);
+
+    if (mostrar_ir && n_erros == 0) {
+        gerar_ir(ast);
+        for (i = 0; i < n_ir_linhas; i++) {
+            fputs(ir_linhas[i], stdout);
+            fputs("\n", stdout);
+        }
+        fflush(stdout);
+        return 0;
+    }
 
     for (i = 0; i < n_erros; i++)
         emitir_linha(fmt("%s — linha %d, coluna %d: %s", erros[i].codigo,

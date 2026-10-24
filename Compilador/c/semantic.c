@@ -37,7 +37,7 @@ static const char *NOME_BASE[] = {
     "int", "float", "bool", "char", "void", "string", "erro"
 };
 
-static Tipo tipo_de(Base base, int vetor)
+Tipo tipo_de(Base base, int vetor)
 {
     Tipo t;
     t.base = base;
@@ -45,16 +45,7 @@ static Tipo tipo_de(Base base, int vetor)
     return t;
 }
 
-#define INT    tipo_de(B_INT, 0)
-#define FLOAT  tipo_de(B_FLOAT, 0)
-#define BOOL   tipo_de(B_BOOL, 0)
-#define CHAR   tipo_de(B_CHAR, 0)
-#define VOID   tipo_de(B_VOID, 0)
-#define STRING tipo_de(B_STRING, 0)
-/* Tipo "coringa" usado após um erro, para não gerar erros em cascata. */
-#define ERRO   tipo_de(B_ERRO, 0)
-
-static int tipo_igual(Tipo a, Tipo b)
+int tipo_igual(Tipo a, Tipo b)
 {
     return a.base == b.base && a.vetor == b.vetor;
 }
@@ -115,21 +106,8 @@ const char *plural(int n, const char *singular, const char *plural_)
 
 
 /* Tabela de símbolos */
-
-typedef enum { CAT_VARIAVEL, CAT_PARAMETRO, CAT_VETOR, CAT_FUNCAO } Categoria;
-
-struct Simbolo {
-    const char *nome;
-    Categoria categoria;
-    Tipo tipo;            /* para FUNÇÃO, é o tipo de retorno */
-    int nivel;            /* nível léxico (0 = global) */
-    int linha, coluna;
-    Tipo *parametros;     /* tipos dos parâmetros (funções) */
-    int n_parametros;
-    Const tamanho;        /* tamanho constante do vetor, se conhecido */
-    int inicializado;
-    int usado;
-};
+/* Categoria e struct Simbolo estão declaradas em semantic.h, para que outras
+ * etapas (ex.: geração de IR) possam ler os símbolos anotados na árvore. */
 
 static Simbolo *novo_simbolo(const char *nome, Categoria categoria, Tipo tipo,
                              int nivel, int linha, int coluna)
@@ -277,7 +255,7 @@ static void visitar(No *no);
 /* Funções auxiliares (análise estática) */
 
 /* Avalia expressões numéricas constantes; ok=0 se não for constante. */
-static Const valor_constante(No *no)
+Const valor_constante(No *no)
 {
     Const nada;
     memset(&nada, 0, sizeof nada);
@@ -344,7 +322,7 @@ static int contem_break(No *no)
 }
 
 /* while(true) ou for(;;) sem break: o fim do laço é inalcançável. */
-static int laco_infinito(No *no)
+int laco_infinito(No *no)
 {
     No *cond = no->condicao;
     int sempre = cond == NULL
